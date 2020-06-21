@@ -6,6 +6,7 @@
  * else compile with cc -o led led.c -Wall
  *
  * k theis 6/16/2020
+ * version 0.5
  *
 */
 
