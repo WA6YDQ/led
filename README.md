@@ -46,8 +46,8 @@ CMD><br/>
 --------------------------<br/>
 <br/>
 Printing will display 22 lines before showing -- MORE  --<br/>
-To continue, press <enter><br/>
-To abort printing and return to command mode press q<enter><br/>
+To continue, press enter<br/>
+To abort printing and return to command mode press q and enter<br/>
 <br/>
 Line numbers are displayed (but not part of the buffer) during print.<br/>
 The del and ins commands require line numbers. Nothing else does.<br/>
