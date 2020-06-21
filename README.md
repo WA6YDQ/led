@@ -38,6 +38,7 @@ print/list:         Show buffer contents<br/>
 del [line number]:  Delete a single line<br/>
 ins [line number]:  Insert text BEFORE line number. ctrl-b<enter> stops insert mode.<br/>
 stats:              Show buffer size<br/>
+find [string]:      Find string in the buffer. Prints the line# & entire line<br>
 sort:               Sort the buffer<br/>
 quit:               Exit the program (does NOT automatically save the buffer).<br/>
 A> Append Cursor, I> Insert Cursor, CMD> Command Cursor<br/>
