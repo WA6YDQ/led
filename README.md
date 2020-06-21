@@ -13,7 +13,7 @@ Compile is straight c:
 Usage is simple:
 led [filename]   filename is optional. If used, led will load 
 filename and put you in append mode (note the A> prompt). 
-Otherwise led will start in the append mode (noted by the A> prompt.
+Otherwise led will start in the append mode (noted by the A> prompt).
 
 There are 3 modes: 
   A> append     Append typed text to the end of the end of the buffer.
