@@ -18,13 +18,13 @@ Otherwise led will start in the append mode (noted by the A> prompt).
 There are 3 modes: <br/>
   A> append     Append typed text to the end of the end of the buffer. <br/>
   I> insert     Insert text BEFORE the entered line number. Continue entering <br/>
-                until ctrl-b <enter> is pressed. <br/>
+                until ctrl-b and enter is pressed. <br/>
   CMD>          Command mode <br/>
   
-  To switch between modes, press ctrl-b and <enter>. <br/>
+  To switch between modes, press ctrl-b and enter. <br/>
   When starting you will be in the append mode. <br/>
   
-Help is available by typing help<enter> in command mode. <br/>
+Help is available by typing help and enter in command mode. <br/>
 <br/>
 ---------------------------- <br/>
 CMD>help <br/>
