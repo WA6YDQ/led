@@ -342,13 +342,13 @@ void stats(void) {  /* show buffer stats */
 
 void usage(void) {   /* show command list */
     printf("\nLine EDitor Commands: \n");
-    printf("pressing ctrl-b  switches modes\n");
+    printf("pressing ctrl-b  & enter switches modes\n");
     printf("new:                Clear Buffer\n");
     printf("load [filename]:    Load a file into the buffer\n");
     printf("save [filename]:    Save the buffer to a file\n");
     printf("print/list:         Show buffer contents\n");
     printf("del [line number]:  Delete a single line\n");
-    printf("ins [line number]:  Insert text BEFORE line number. <cr> by itself stops\n");
+    printf("ins [line number]:  Insert text BEFORE line number. ctrl-b and enter stops insert\n");
     printf("stats:              Show buffer size\n");
     printf("sort:               Sort the buffer\n");
     printf("quit:               Exit the program\n");
@@ -359,7 +359,7 @@ void usage(void) {   /* show command list */
 
 
 
-void delete(char *linein) {     /* delete a line or group of lines */
+void delete(char *linein) {     /* delete a line  */
 char cmd[MAXLINE] = {}, linenumber[MAXLINE] = {};
 int line = 0, linectr = 0;
 int n=0, x=0, startpos=0, endpos=0;
@@ -415,7 +415,7 @@ int n=0, x=0, startpos=0, endpos=0;
 
 
 
-void insert(char *linein) {  /* insert a single line */
+void insert(char *linein) {  /* insert a group of lines. Exit w/ctrl-b */
 char cmd[MAXLINE] = {}, linenumber[MAXLINE] = {};
 int line = 0, linectr = 0;
 int n=0, startpos=0, endpos=0;
@@ -489,7 +489,7 @@ insLoop:
 
     curpos = newcurpos;
 
-    /* bump line number for auto insertion until user presses <cr> by itself */
+    /* bump line number for auto insertion until user presses ctrl-b & enter */
     line += 1;
     goto insLoop;
 
@@ -539,7 +539,6 @@ void sort(char *linein) {       // sort the buffer
     for (n=0; n<curpos; n++) 
         if (buffer[n] == '\n') line+=1;     // count line numbers in buffer
 
-    //printf("found %d line numbers\n",line);
     listline = 1;
     char sortlist[line+1][MAXLINE]; // create a location to hold the sorted list
     char locbuf[MAXLINE];
