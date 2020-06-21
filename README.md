@@ -7,24 +7,24 @@ of having to remember commands from line editors written over the last
 
 Also I use terminals that don't have cursor control ie. tty's. 
 
-Compile is straight c:
+Compile is straight c: <br/>
   cc -o led led.c -Wall
   
-Usage is simple:
+Usage is simple: <br/>
 led [filename]   filename is optional. If used, led will load 
 filename and put you in append mode (note the A> prompt). 
 Otherwise led will start in the append mode (noted by the A> prompt).
 
-There are 3 modes: 
-  A> append     Append typed text to the end of the end of the buffer.
-  I> insert     Insert text BEFORE the entered line number. Continue entering
-                until ctrl-b <enter> is pressed.
-  CMD>          Command mode
+There are 3 modes: <br/>
+  A> append     Append typed text to the end of the end of the buffer. <br/>
+  I> insert     Insert text BEFORE the entered line number. Continue entering <br/>
+                until ctrl-b <enter> is pressed. <br/>
+  CMD>          Command mode <br/>
   
-  To switch between modes, press ctrl-b and <enter>.
-  When starting you will be in the append mode.
+  To switch between modes, press ctrl-b and <enter>. <br/>
+  When starting you will be in the append mode. <br/>
   
-Help is available by typing help<enter> in command mode.
+Help is available by typing help<enter> in command mode. <br/>
 
 ----------------------------
 CMD>help
