@@ -34,7 +34,8 @@ pressing ctrl-b  switches modes<br/>
 new:                Clear Buffer<br/>
 load [filename]:    Load a file into the buffer<br/>
 save [filename]:    Save the buffer to a file<br/>
-print/list:         Show buffer contents<br/>
+print [number]:     Show buffer contents (starting at optional number)<br/>
+list [number]:      Show buffer contents (starting at optional number)<br/>
 del [line number]:  Delete a single line<br/>
 ins [line number]:  Insert text BEFORE line number. ctrl-b<enter> stops insert mode.<br/>
 stats:              Show buffer size<br/>
@@ -51,7 +52,8 @@ To continue, press enter<br/>
 To abort printing and return to command mode press q and enter<br/>
 <br/>
 Line numbers are displayed (but not part of the buffer) during print.<br/>
-The del and ins commands require line numbers. Nothing else does.<br/>
+The del and ins commands require line numbers. Nothing else does. Print takes <br/>
+an optional line number to start at.<br/>
 <br/>
 Enjoy!<br/>
 <br/>
