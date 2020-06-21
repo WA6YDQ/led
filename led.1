@@ -1,0 +1,122 @@
+.TH LED 1 2020-06-20
+.SH NAME
+led \-
+A simple line editor designed for cross-platform
+operating systems where a consistant design and UI is wanted.
+.SH SYNOPSIS
+.B led [filename] 
+where filename is a text file to open on start. If a filename is given
+led will load the file into the buffer.
+If no filename is given led will start with an empty buffer.
+.PP
+In either case led will start in append mode. You will see a A>
+prompt at startup.
+.SH DESCRIPTION
+To build led using an ansi-c compiler:
+cc -o led led.c -Wall
+.PP
+led is written and initially build on a linux system but has been 
+successfully built on other systems as well.
+.SH MODES
+led has 3 operating modes: 
+.PP
+.B APPEND
+In append mode anything typed will be added to the end of the buffer.
+When the led program is started, you will be in the append mode. The
+displayed prompt will show A> to indicate that you are in the append mode.
+.PP
+.B INSERT 
+To get to the insert mode type ins [line number].
+You can only enter insert mode after some text has been entered in
+the buffer. The prompt will show I> when in insert mode.
+.PP
+.B COMMAND
+Command mode is where you run various commands that manipulate the
+buffer. The prompt will show CMD> when in command mode.
+.PP
+To switch between append and command mode press CTRL-B and the 
+enter/return key at the start of a line. 
+.PP
+To exit insert mode and return to command mode press CTRL-B and the 
+enter/return key, again at the start of a line.
+.PP
+.B NOTE:
+.PP
+Switching commands (pressing CTRL-B and enter/return) only works when the
+cursor is on the start of the line (position 1). 
+.SH COMMANDS
+.TP
+.B new
+The new command clears the buffer and resets the buffer pointer to 0.
+Everything that was in the buffer will be erased.
+.TP
+.B load [filename]
+The load command will load a text file at the current position within 
+the buffer. If the buffer is empty, the loaded file will be the only 
+data in the buffer. If the buffer already had data in it the loaded file
+will be appended to the end of the buffer.
+If no filename is given you will be asked for one. If the file does not
+exist an error message will be displayed and you will be returned to command
+mode.
+.TP
+.B save [filename]
+The save command will save the contents of the buffer to the given filename.
+If a filename is not given you will be asked to supply one. If a file can't 
+be created an error message will be shown and you will be returned to the 
+command mode.
+.TP
+.B print [linenumber]  list [linenumber]
+The print and list command will display the contents of the buffer preceeded
+by an internal line number. The line number is not a part of the buffer but
+is supplied for reference to help you manipulate the buffer contents.
+.BR
+If no linenumber is supplied the buffer will be displayed from the beginning.
+If a linenumber is given the buffer will be displayed starting at the given 
+linenumber.
+.TP
+.B NOTE: 
+Line numbers are equivalant to newlines. The text buffer starts at
+buffer location 0 which corrosponds to line 1. Each newline will increment the
+linenumber count by one.
+.PP
+The print/list commands will show 23 lines at a time. At the 23'rd line
+-- MORE -- will be displayed and wait for you to press either enter/return
+to show the next 23 lines, or press 'q' and enter/return to return to command
+mode.
+.TP
+.B del [linenumber]
+The del command will delete a single line using the given linenumber.
+.TP
+.B ins [linenumber]
+The ins command will start inserting text at the start of the given linenumber.
+Inserting will continue until a CTRL-B and enter/return is pressed at the start
+of an empty line.
+.TP
+.B stats
+The stats command displays the size of the buffer and line number count.
+.TP
+.B find [string]
+The find command searches the buffer for the specified string. There can
+be up to 1000 characters in the search string, but the search string ends at
+the first white space. A single character can be searched for.
+The output of the find command will be the line number the string resides on
+and the entire line will be displayed.
+.TP
+.B sort
+The sort command does an alphabetic sort of the buffer replacing the current 
+buffer contents with the sorted result.
+.TP
+.B quit
+The quit command exits the line editor immediately. Any unsaved buffer contents
+will be lost without warning. If you want to save the buffer, run save [filename]
+before quitting.
+.SH
+.B AUTHOR
+led is written by Kurt Theis.
+.SH
+.B BUGS
+led is stored on my Github storage. Any bugs or changes should be addressed
+there.
+.PP
+
+
