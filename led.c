@@ -195,7 +195,10 @@ void clearBuffer(void) {    // clear the memory buffer
     free(buffer);
     curpos = 0;
     buffer = (char *)malloc(MAXLINE+1);
-    if (buffer != NULL) return;
+    if (buffer != NULL) {
+        buffer[curpos]='\0';
+        return;
+    }
     printf("Memory error\n");
     exit(1);
 
@@ -217,6 +220,10 @@ void print(char *linein) {  // print the buffer
     int row=0;
     int pos = 0;
     int n = 0;
+    if (curpos == 0) {
+        printf("Buffer Empty\n");
+        return;
+    }
     while (1) {
         printf("%04d: ",linenum++);
         for (n=0; n<MAXLINE; n++) {
@@ -332,7 +339,11 @@ void fileload(char linein[MAXLINE]) {   // load file into buffer
 
 
 void stats(void) {  /* show buffer stats */
-    printf("Buffer size %d bytes\n",curpos-1);
+    int line=0, ct=0;
+    printf("Buffer size %d bytes\n",curpos);
+    for (ct=0; ct<curpos; ct++) 
+        if (buffer[ct]=='\n') line++;
+    printf("%d lines\n",line);
     printf("\n");
     return;
 }
@@ -350,6 +361,7 @@ void usage(void) {   /* show command list */
     printf("del [line number]:  Delete a single line\n");
     printf("ins [line number]:  Insert text BEFORE line number. ctrl-b and enter stops insert\n");
     printf("stats:              Show buffer size\n");
+    printf("find [string]:      Find string in the buffer. Prints the line# & entire line\n");
     printf("sort:               Sort the buffer\n");
     printf("quit:               Exit the program\n");
     printf("\nA> Append Cursor, I> Insert Cursor, CMD> Command Cursor\n");
