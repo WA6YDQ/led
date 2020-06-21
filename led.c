@@ -216,14 +216,45 @@ void showmode(int val) {
 
 
 void print(char *linein) {  // print the buffer
-    int linenum = 1;
+    int linenum = 1, line=1;
     int row=0;
     int pos = 0;
     int n = 0;
+    char cmd[MAXLINE] = {}, opt[MAXLINE] = {};
+
     if (curpos == 0) {
         printf("Buffer Empty\n");
         return;
     }
+        
+    /* get line number if supplied, start printing from given line number */
+    sscanf(linein,"%s %s",cmd,opt);
+    line = atoi(opt);       // line=0 if empty string
+
+    /* see if given line number is valid */
+    if (line == 0) goto showlisting;
+    if ((line <= 0) || (line > LINENO_MAX)) {
+        printf("line number %d outside range\n",line);
+        return;
+    }
+
+    /* set position to given line number */
+    if (line > 0) {
+        while (1) {
+            for (n=0; n<MAXLINE; n++) {
+                if (buffer[n+pos]=='\n') break;
+            }
+            linenum++;
+            pos = pos + n+1;    // +1 account for \n
+            if (pos >= curpos) {
+                printf("line number %d outside range\n",line);
+                return;
+            }
+            if (linenum == line) break;
+        }
+    }
+
+showlisting:
     while (1) {
         printf("%04d: ",linenum++);
         for (n=0; n<MAXLINE; n++) {
@@ -232,7 +263,10 @@ void print(char *linein) {  // print the buffer
                 break;
         }
         pos += n+1;     // account for \n
-        if (pos >= curpos) return;
+        if (pos >= curpos) {
+            printf("\n");
+            return;
+        }
         row++;
         if (row < 22) continue;
         row = 0;
@@ -246,7 +280,7 @@ void print(char *linein) {  // print the buffer
         continue;
     }
 
-    return;
+    return;     // really shouldn't get here
 }
 
 
@@ -357,7 +391,8 @@ void usage(void) {   /* show command list */
     printf("new:                Clear Buffer\n");
     printf("load [filename]:    Load a file into the buffer\n");
     printf("save [filename]:    Save the buffer to a file\n");
-    printf("print/list:         Show buffer contents\n");
+    printf("print [number]:     Show buffer contents (starting at optional number)\n");
+    printf("list [number]:      Show buffer contents (starting at optional number)\n");
     printf("del [line number]:  Delete a single line\n");
     printf("ins [line number]:  Insert text BEFORE line number. ctrl-b and enter stops insert\n");
     printf("stats:              Show buffer size\n");
