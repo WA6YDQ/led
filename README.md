@@ -26,14 +26,14 @@ There are 3 modes: <br/>
   
 
 Printing will display 22 lines before showing -- MORE  --<br/>
-To continue, press enter<br/>
-To abort printing and return to command mode press q and enter<br/>
+To continue, press enter.<br/>
+To abort printing and return to command mode press q and enter.<br/>
 <br/>
 Line numbers are displayed (but not part of the buffer) during print.<br/>
-The del and ins commands require line numbers. Nothing else does. Print takes <br/>
-an optional line number to start at.<br/>
+The del, ins, cut, copy & paste commands require line numbers. Nothing else does. Print takes <br/>
+an optional line number to start printing at. Otherwise print starts at line 1.<br/>
 <br/>
-There is a unix manpage for led (led.1) with fill instructions. 
+There is a unix manpage for led (led.1) with full instructions. 
 Move it into your manpages directory.
 <br/>
 Enjoy!<br/>
