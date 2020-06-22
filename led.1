@@ -92,8 +92,21 @@ The ins command will start inserting text at the start of the given linenumber.
 Inserting will continue until a CTRL-B and enter/return is pressed at the start
 of an empty line.
 .TP
+.B cut [linenumber]
+The cut command deletes linenumber from the main buffers, saving it in a 
+special cut buffer for later use.
+.TP
+.B copy [linenumber]
+The copy command copies linenumber from the main buffer, saving it in 
+a special cut buffer for later use.
+.TP
+.B paste [linenumber]
+The paste command pastes the cut buffer before linenumber. The cut buffer is
+unchanged so that a paste can occur multiple times throughout the document.
+.TP
 .B stats
 The stats command displays the size of the buffer and line number count.
+Also the contents of the cut buffer (used in cut/copy/paste) are shown.
 .TP
 .B find [string]
 The find command searches the buffer for the specified string. There can
