@@ -24,29 +24,7 @@ There are 3 modes: <br/>
   To switch between modes, press ctrl-b and enter. <br/>
   When starting you will be in the append mode. <br/>
   
-Help is available by typing help and enter in command mode. <br/>
-<br/>
----------------------------- <br/>
-CMD>help <br/>
-<br/>
-Line EDitor Commands:<br/> 
-pressing ctrl-b  switches modes<br/>
-new:                Clear Buffer<br/>
-load [filename]:    Load a file into the buffer<br/>
-save [filename]:    Save the buffer to a file<br/>
-print [number]:     Show buffer contents (starting at optional number)<br/>
-list [number]:      Show buffer contents (starting at optional number)<br/>
-del [line number]:  Delete a single line<br/>
-ins [line number]:  Insert text BEFORE line number. ctrl-b<enter> stops insert mode.<br/>
-stats:              Show buffer size<br/>
-find [string]:      Find string in the buffer. Prints the line# & entire line<br>
-sort:               Sort the buffer<br/>
-quit:               Exit the program (does NOT automatically save the buffer).<br/>
-A> Append Cursor, I> Insert Cursor, CMD> Command Cursor<br/>
-CMD><br/>
-<br/>
---------------------------<br/>
-<br/>
+
 Printing will display 22 lines before showing -- MORE  --<br/>
 To continue, press enter<br/>
 To abort printing and return to command mode press q and enter<br/>
@@ -54,6 +32,9 @@ To abort printing and return to command mode press q and enter<br/>
 Line numbers are displayed (but not part of the buffer) during print.<br/>
 The del and ins commands require line numbers. Nothing else does. Print takes <br/>
 an optional line number to start at.<br/>
+<br/>
+There is a unix manpage for led (led.1) with fill instructions. 
+Move it into your manpages directory.
 <br/>
 Enjoy!<br/>
 <br/>
