@@ -6,7 +6,7 @@
  * else compile with cc -o led led.c -Wall
  *
  * k theis 6/16/2020
- * version 0.5
+ * version 0.51
  *
 */
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 
     curpos = 0; // curpos is current position in the buffer 
 
-    /* test command line - if argc==2 the treat option as filename to load */
+    /* test command line - if argc==2 treat the option as filename to load */
     if (argc == 2) {
         char loadcmd[MAXLINE];
         strcpy(loadcmd,"load ");
@@ -113,10 +113,10 @@ editMode:   /* command loop */
 editLoop:
     /* get a command */
     localpos = 0;
-    printf("CMD>");   //show edir mode cursor
+    printf("CMD>");   //show command prompt
     while ( (linein[localpos++] = fgetc(stdin)) != '\n');
 
-    // user hit <cr>
+    // user hit ctrl-B/enter at pos 0
     if (linein[0] == 0x02) {
         mode = 1;   // ^B changes modes
         goto inputMode;
@@ -407,56 +407,49 @@ void usage(void) {   /* show command list */
 
 
 
-void delete(char *linein) {     /* delete a line  */
-char cmd[MAXLINE] = {}, linenumber[MAXLINE] = {};
-int line = 0, linectr = 0;
-int n=0, x=0, startpos=0, endpos=0;
+void delete(char *linein) {  /* delete a line */
+    char cmd[MAXLINE]={}, linenumber[MAXLINE]={};
+    int line=0; int linectr=0;
+    int n=0, startpos = 0, endpos = 0, dist = 0;
 
-    if (strlen(linein) == 3) {
-        printf("format: del [line#]\n");
-        return;
-    }
-
-    // get line number
+    /* get the line number */
     sscanf(linein,"%s %s",cmd,linenumber);
     line = atof(linenumber);
-    if ((line <= 0) || (line > 99999)) {
+    if ((line < LINENO_MIN) || (line > LINENO_MAX)) {
         printf("Invalid line number %d\n",line);
         return;
     }
-    
-    // got a valid line number in line, now see if it exists
-    for (n=0; n<curpos; n++) {
-        //if (buffer[n] == '\0') 
-        if (buffer[n] == '\n')
-            linectr+=1;
-    }
-    if (line > linectr) {   
-        printf("Invalid line number %d\n",line);
-            return;
-    }
 
-    // line exists - find position and delete line
-    linectr = 0;
     startpos = 0;
-    endpos = 0;
     for (n=0; n<curpos; n++) {
-        //if (buffer[n] == '\0') {
         if (buffer[n] == '\n') {
             linectr++;
             endpos = n;
+            if (line == linectr) 
+                goto del1;
+            startpos = endpos+1;    // skip the \n
         }
-        if (line == linectr) break;      // match, n points to start of line
-        startpos = endpos;
     }
-    
+    if (line != linectr) {
+        if (n==curpos) {
+            printf("line %d not found\n",line);
+            return;
+        }
+    }
 
-    x = startpos;
-    while (x < curpos) {
-        buffer[x] = buffer[x+(endpos-startpos)];   // shift buffer down by length of deleted line
-        x++;
+/* match */    
+del1:
+    if (line == linectr) {
+        /* get distance from start of line to end of line */
+        dist = (endpos-startpos)+1;
+        /* delete the line, shift the buffer down by dist */
+        for (n=endpos+1; n<curpos; n++) 
+            buffer[n-dist] = buffer[n];
+        /* reset the curpos pointer */
+        curpos = curpos - dist;
+        return;
     }
-    curpos = x-(endpos-startpos);   // decrease by length of deleted line
+    printf("underfined error in delete\n");
     return;
 }
 
