@@ -128,6 +128,10 @@ before quitting.
 led is written by Kurt Theis.
 .SH
 .B BUGS
+There are several instances where buffer overflows can occur. The scanf's don't 
+check for max length lines, and fgetc's are used. MAXLINE > 1000 should handle
+most issues but it's something to be aware of.
+.PP
 led is stored on my Github storage. Any bugs or changes should be addressed
 there.
 .PP
