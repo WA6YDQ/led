@@ -5,8 +5,9 @@
  *
  * else compile with cc -o led led.c -Wall
  *
- * k theis 6/22/2020
- * version 0.61  changed print routine
+ * k theis 6/25/2020
+ * version 0.65 added replace/replaceall commands, 
+ * version 0.61 changed print routine
  *
 */
 
@@ -199,6 +200,12 @@ editLoop:
         goto editLoop;
     }
 
+    if (strncmp(linein,"replaceall",10) == 0) {
+        repl(linein);
+        goto editLoop;
+    }
+
+
     if (strncmp(linein,"quit",4) == 0) goto done;
 
     /* unknown command */
@@ -217,12 +224,12 @@ done:
 void clearBuffer(void) {    // clear the memory buffer
     free(buffer);
     curpos = 0;
-    buffer = (char *)malloc(MAXLINE+1);
+    buffer = (char*) malloc((MAXLINE * 2) * sizeof(char*));
     if (buffer != NULL) {
         buffer[curpos]='\0';
         return;
     }
-    printf("Memory error\n");
+    printf("Memory error in clearBuffer\n");
     exit(1);
 
 }
@@ -362,7 +369,7 @@ void fileload(char linein[MAXLINE]) {   // load file into buffer
             // save buffer
             tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   // add local size to total size
             if (tbuffer == NULL) {
-                printf("memory error\n");
+                printf("memory error in fileload\n");
                 exit(1);
             }
             buffer = tbuffer;       // copy temp to real buffer
@@ -418,8 +425,10 @@ void usage(void) {   /* show command list */
     printf("stats               Show buffer size, other stats\n");
     printf("find [string]       Find string in the buffer. Prints the line# & entire line\n");
     printf("sort                Sort the buffer\n");
+    printf("replace [old][new]  replace the string 'old' with the string 'new'\n");
+    printf("replaceall [old][new]   Global replace every occurance of 'old' with 'new'\n");
     printf("quit                Exit the program (no automatic save)\n");
-    printf("\nA> Append Cursor, I> Insert Cursor, CMD> Command Cursor\n");
+    printf("\nPrompts: A> Append, I> Insert, CMD> Command\n");
     printf("\n");
     return;
 }
@@ -596,7 +605,7 @@ insLoop:
     // save buffer
     tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   // add local size to total size
         if (tbuffer == NULL) {
-        printf("memory error\n");
+        printf("memory error in insert\n");
         exit(1);
     }
     buffer = tbuffer;       // copy temp to real buffer
@@ -699,7 +708,7 @@ void sort(char *linein) {       // sort the buffer
     /* save the sorted list back to the buffer */
     free(buffer);
     curpos = 0;
-    buffer = (char*) malloc(line * MAXLINE);
+    buffer = (char*) malloc(((line * MAXLINE) + 1) * sizeof(char*));
     for (n=0; n < line+1; n++) {
         for (int x=0; x<strlen(sortlist[n]); x++){
             buffer[curpos] = sortlist[n][x];
@@ -711,9 +720,98 @@ void sort(char *linein) {       // sort the buffer
 }
 
 
-/* replace (globally) a string */
+/* replace (globally) a string (replace=once, replaceall=global) */
+/* format: replace/replaceall [orig string] [replacement string] */
 void repl(char *linein) {
-    // not done yet
+    char cmd[MAXLINE]={}, orig[MAXLINE]={}, replace[MAXLINE]={};
+    sscanf(linein,"%s %s %s",cmd,orig,replace);
+    int distance = 0, startpos = 0, endpos = 0;
+    int newcurpos = 0;
+    int FLAG = 0;
+
+    /* error checking */
+    if ((strlen(orig)==0) || (strlen(replace)==0)) {
+        printf("Format: replace/replaceall [original string] [replacement string]\n");
+        return;
+    }
+
+replaceBegin:       // loop back to here for global
+    /* search for instance */
+    distance = 0; startpos = 0; endpos = 0;
+    char *data = &buffer[0];
+    char *p = strstr(data,(char *)orig);
+    if (p == NULL) {
+        if (!FLAG) printf("string %s not found\n",orig);
+        return;
+    }
+    /* get start position of string */
+    startpos = (p - &buffer[0]);
+    
+    /* make sure the beginning is either a space or \n */
+    /* (some test here) */
+   
+    /* found start, now find end of string */
+    while (p++) {
+        if (*p != ' ') break; 
+        if (*p != '\n') break;
+    }
+    // strings end either w/a newline or space.
+
+    endpos = (p - &buffer[0]); 
+    distance = (endpos - startpos) + 1;
+   
+    /* old string length = new string length */
+    if (strlen(orig) == strlen(replace)) {
+        for (int n=0; n<strlen(replace); n++)
+            buffer[startpos+n] = replace[n];
+        FLAG=1;
+        if (strcmp(cmd,"replace") == 0) return;
+        if (strcmp(cmd,"replaceall") == 0) goto replaceBegin;
+    }
+    
+
+    /* old string length > new string length */ 
+    if (strlen(replace) < strlen(orig)) {
+       for (int n=0; n<strlen(replace); n++)
+           buffer[startpos+n] = replace[n];
+
+    /* shift down the difference */   
+        endpos = startpos + strlen(orig);
+        distance = strlen(orig) - strlen(replace);
+        for (int n=endpos; n<curpos; n++)
+            buffer[n-distance] = buffer[n];
+        curpos = curpos - distance;
+        FLAG=1;
+        if (strcmp(cmd,"replace") == 0) return;
+        if (strcmp(cmd,"replaceall") == 0) goto replaceBegin;
+    }
+
+
+    /* new string length > old string length */
+    if (strlen(replace) > strlen(orig)) {
+        distance = (strlen(replace) - strlen(orig));
+        tbuffer = (char *)realloc(buffer,(curpos+distance+1));
+        if (tbuffer == NULL) {
+            printf("memory error in replace\n");
+            exit(1);
+        }
+        buffer = tbuffer;
+        RFLAG = 1;
+        /* move buffer contents up by distance */
+        newcurpos = curpos + distance;
+        for (int n=0; n != (curpos-endpos+1); n++)
+            buffer[newcurpos-n] = buffer[curpos-n];
+        curpos = newcurpos;
+        /* now replace the string */
+        for (int n=0; n!= strlen(replace); n++)
+            buffer[startpos+n] = replace[n];
+        FLAG = 1;
+        if (strcmp(cmd,"replace") == 0) return;
+        if (strcmp(cmd,"replaceall") == 0) goto replaceBegin;
+    }
+
+    /* should never get here */
+    printf("unknown error in replace\n");
     return;
 }
 

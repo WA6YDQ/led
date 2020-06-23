@@ -48,7 +48,8 @@ cursor is on the start of the line (position 1).
 .TP
 .B new
 The new command clears the buffer and resets the buffer pointer to 0.
-Everything that was in the buffer will be erased.
+Everything that was in the buffer will be erased. The contents of the
+cut buffer (used in cut/copy/paste) is unchanged.
 .TP
 .B load [filename]
 The load command will load a text file at the current position within 
@@ -119,6 +120,14 @@ and the entire line will be displayed.
 .B sort
 The sort command does an alphabetic sort of the buffer replacing the current 
 buffer contents with the sorted result.
+.TP
+.B replace [old string] [new string] & replaceall [old string] [new string]
+The replace command searches the buffer for the first instance of 'string' 
+and replaces it with 'new string'. 
+The replaceall command searches the entire document for 'old string' and
+replaces it with 'new string'. In both cases 'old string' and 'new string'
+can have no white spaces, and must be non-NULL. 'old string' can be part of 
+an existing string but ends with either a newline ('\\n') or space (' ');
 .TP
 .B quit
 The quit command exits the line editor immediately. Any unsaved buffer contents
