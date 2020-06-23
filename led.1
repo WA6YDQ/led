@@ -65,23 +65,24 @@ If a filename is not given you will be asked to supply one. If a file can't
 be created an error message will be shown and you will be returned to the 
 command mode.
 .TP
-.B print [linenumber]  list [linenumber]
-The print and list command will display the contents of the buffer preceeded
+.B print [start linenumber] [end linenumber] 
+The print command will display the contents of the buffer preceeded
 by an internal line number. The line number is not a part of the buffer but
 is supplied for reference to help you manipulate the buffer contents.
 .BR
 If no linenumber is supplied the buffer will be displayed from the beginning.
-If a linenumber is given the buffer will be displayed starting at the given 
-linenumber.
+If start/end line numbers are given, the buffer will be displayed from start
+to end (inclusive). If just the start line number is given, the text buffer
+will be displayed from the start number to the buffer end.
 .TP
 .B NOTE: 
 Line numbers are equivalant to newlines. The text buffer starts at
 buffer location 0 which corrosponds to line 1. Each newline will increment the
 linenumber count by one.
-.PP
-The print/list commands will show 23 lines at a time. At the 23'rd line
+.BR
+The print/list commands will show 24 lines at a time. At the 24th line
 -- MORE -- will be displayed and wait for you to press either enter/return
-to show the next 23 lines, or press 'q' and enter/return to return to command
+to show the next set of lines, or press 'q' and enter/return to return to command
 mode.
 .TP
 .B del [linenumber]
@@ -111,7 +112,7 @@ Also the contents of the cut buffer (used in cut/copy/paste) are shown.
 .B find [string]
 The find command searches the buffer for the specified string. There can
 be up to 1000 characters in the search string, but the search string ends at
-the first white space. A single character can be searched for.
+the first white space. A single character can also be searched for.
 The output of the find command will be the line number the string resides on
 and the entire line will be displayed.
 .TP

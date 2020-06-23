@@ -6,7 +6,7 @@
  * else compile with cc -o led led.c -Wall
  *
  * k theis 6/22/2020
- * version 0.6
+ * version 0.61  changed print routine
  *
 */
 
@@ -47,7 +47,7 @@ void paste(char *);         // paste the cut buffer to the buffer
 void insert(char *);        // insert a single line
 void find(char *);          // find a word
 void sort(char *);          // sort the buffer
-
+void repl(char *);          // global replace
 
 
 /* start of main */
@@ -115,6 +115,7 @@ editLoop:
     /* get a command */
     localpos = 0;
     printf("CMD>");   //show command prompt
+    for (int n=0; n<MAXLINE; n++) linein[n]='\0';   // clear buffer
     while ( (linein[localpos++] = fgetc(stdin)) != '\n');
 
     // user hit ctrl-B/enter at pos 0
@@ -193,6 +194,11 @@ editLoop:
         goto editLoop;
     }
 
+    if (strncmp(linein,"replace",7) == 0) {
+        repl(linein);
+        goto editLoop;
+    }
+
     if (strncmp(linein,"quit",4) == 0) goto done;
 
     /* unknown command */
@@ -222,6 +228,7 @@ void clearBuffer(void) {    // clear the memory buffer
 }
 
 
+
 void showmode(int val) {
     if (val == 1) printf("INPUT\n");
     if (val == 0) printf("EDIT\n");
@@ -231,74 +238,60 @@ void showmode(int val) {
 
 
 
+/* print a line - format: print/list [start number][end number] */
+/* [start number] defaults to 0, [end number] defaults to 99999 */
+void print(char *linein) {    /* display buffer */
 
-void print(char *linein) {  // print the buffer
-    int linenum = 1, line=1;
-    int row=0;
-    int pos = 0;
-    int n = 0;
-    char cmd[MAXLINE] = {}, opt[MAXLINE] = {};
+    /* get line #'s to print */
+    char cmd[MAXLINE]={}, linelow[MAXLINE]={}, linehi[MAXLINE]={};
+    sscanf(linein,"%s %s %s",cmd,linelow,linehi);
+    int startline=atoi(linelow);
+    if (startline == 0) startline = LINENO_MIN;
+    int endline=atoi(linehi);
+    if (endline == 0) endline = LINENO_MAX;
+    
+    char *data = &buffer[0];
+    int line = 1;   // current line #
+    int row = 1;    // row counter
 
-    if (curpos == 0) {
-        printf("Buffer Empty\n");
-        return;
-    }
-        
-    /* get line number if supplied, start printing from given line number */
-    sscanf(linein,"%s %s",cmd,opt);
-    line = atoi(opt);       // line=0 if empty string
-
-    /* see if given line number is valid */
-    if (line == 0) goto showlisting;
-    if ((line <= 0) || (line > LINENO_MAX)) {
-        printf("line number %d outside range\n",line);
-        return;
-    }
-
-    /* set position to given line number */
-    if (line > 0) {
-        while (1) {
-            for (n=0; n<MAXLINE; n++) {
-                if (buffer[n+pos]=='\n') break;
-            }
-            linenum++;
-            pos = pos + n+1;    // +1 account for \n
-            if (pos >= curpos) {
-                printf("line number %d outside range\n",line);
-                return;
-            }
-            if (linenum == line) break;
+    int n=0;
+    char chbuf[MAXLINE];
+    for (n=0; n<MAXLINE; n++) chbuf[n] = '\0';
+    while ((data - &buffer[0]) < curpos-1) {    // getting a line of data at a time
+        for (n=0; n<MAXLINE; n++) {             // makes it easier to print ranges 
+            chbuf[n] = *data++;                 // of line numbers
+            if (chbuf[n] == '\n') break;        // and have formatting look good
         }
-    }
-
-showlisting:
-    while (1) {
-        printf("%04d: ",linenum++);
-        for (n=0; n<MAXLINE; n++) {
-            printf("%c",buffer[pos+n]);
-            if (buffer[pos+n] == '\n')
-                break;
-        }
-        pos += n+1;     // account for \n
-        if (pos >= curpos) {
+        // got a \n
+        if ((line >= startline) && (line <= endline))
+            printf("%04d: %s",line,chbuf);
+        if (line > endline) {
             printf("\n");
             return;
         }
-        row++;
-        if (row < 22) continue;
-        row = 0;
-        printf("\n-- MORE --");
-        char ch=fgetc(stdin);
+        for (n=0; n<MAXLINE; n++) chbuf[n] = '\0';
+        line++;
+        if ((line >= startline) && (line <= endline)) 
+            row++;
+        else
+            row = 1;                // don't count rows if we're not printing them
+        if (row < 25) continue;
+        row = 1;
+        printf("\n--- MORE ---");
+        char ch = fgetc(stdin);
         if (ch == 'q') {
             printf("\n");
-            ch = fgetc(stdin);  // get <cr>
+            ch = fgetc(stdin);
             return;
         }
-        continue;
+        else 
+            while (ch != '\n') ch = fgetc(stdin);   /* ignore all but <cr> */
     }
+    return;
 
-    return;     // really shouldn't get here
 }
+
+
 
 
 
@@ -410,21 +403,22 @@ void stats(void) {  /* show buffer stats */
 
 void usage(void) {   /* show command list */
     printf("\nLine EDitor Commands: \n");
-    printf("pressing ctrl-b  & enter switches modes\n");
+    printf("pressing ctrl-b  & enter at position 0 switches modes\n");
     printf("new                 Clear Buffer\n");
     printf("load [filename]     Load a file into the buffer\n");
     printf("save [filename]     Save the buffer to a file\n");
-    printf("print [number]      Show buffer contents (starting at optional number)\n");
-    printf("list [number]       Show buffer contents (starting at optional number)\n");
+    printf("print [start][end]  Show buffer contents start/end are line #'s\n");
+    printf("print by itself prints all the lines\n");
+    printf("At --MORE-- press <cr> for next, q<cr> to stop listing\n");
     printf("del [line number]   Delete a single line\n");
     printf("ins [line number]   Insert text BEFORE line number. ctrl-b and enter stops insert\n");
     printf("cut [line number]   Delete a line, saving it in the cut buffer for later use\n");
     printf("copy [line number]  Copy a line to the cut buffer for later use\n");
     printf("paste [line number] Paste the cut buffer BEFORE line number\n");
-    printf("stats               Show buffer size\n");
+    printf("stats               Show buffer size, other stats\n");
     printf("find [string]       Find string in the buffer. Prints the line# & entire line\n");
     printf("sort                Sort the buffer\n");
-    printf("quit                Exit the program\n");
+    printf("quit                Exit the program (no automatic save)\n");
     printf("\nA> Append Cursor, I> Insert Cursor, CMD> Command Cursor\n");
     printf("\n");
     return;
@@ -713,6 +707,13 @@ void sort(char *linein) {       // sort the buffer
         }
     }
     
+    return;
+}
+
+
+/* replace (globally) a string */
+void repl(char *linein) {
+    // not done yet
     return;
 }
 
