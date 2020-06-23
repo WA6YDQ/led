@@ -15,23 +15,7 @@ led [filename]   filename is optional. If used, led will load
 filename and put you in append mode (note the A> prompt). <br/>
 Otherwise led will start in the append mode (noted by the A> prompt).
 <br/>
-There are 3 modes: <br/>
-  A> append     Append typed text to the end of the end of the buffer. <br/>
-  I> insert     Insert text BEFORE the entered line number. Continue entering <br/>
-                until ctrl-b and enter is pressed. <br/>
-  CMD>          Command mode <br/>
-  
-  To switch between modes, press ctrl-b and enter. <br/>
-  When starting you will be in the append mode. <br/>
-  
 
-Printing will display 22 lines before showing -- MORE  --<br/>
-To continue, press enter.<br/>
-To abort printing and return to command mode press q and enter.<br/>
-<br/>
-Line numbers are displayed (but not part of the buffer) during print.<br/>
-The del, ins, cut, copy & paste commands require line numbers. Nothing else does. Print takes <br/>
-an optional line number to start printing at. Otherwise print starts at line 1.<br/>
 <br/>
 There is a unix manpage for led (led.1) with full instructions. 
 Move it into your manpages directory.
