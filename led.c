@@ -1,12 +1,16 @@
-/* led - line editor for MPE
+/* led - simple line editor
  *
- * if using valgrind, 
- * compile with cc -o led led.c -g -O0 -Wall
+ * if using valgrind, compile with:
+ *      cc -o led led.c -g -O0 -Wall -ansi
+ * to use valgrind:
+ *      valgrind --log-file=led.val --leak-check=full --show-reachable=yes ./led
+ * else compile with 
+ *      cc -o led led.c -Wall -ansi
  *
- * else compile with cc -o led led.c -Wall
- *
- * k theis 6/25/2020
- * version 0.65 added replace/replaceall commands, 
+ * k theis 6/24/2020
+ * version 0.70 added undo:  undo the last buffer changing operation
+ * version 0.66 replace format changed: replace [starting line number][start][end]
+ * version 0.65 added replace/replaceall commands 
  * version 0.61 changed print routine
  *
 */
@@ -16,52 +20,59 @@
 #include <string.h>
 
 #ifndef MAXLINE
-#define MAXLINE 1000      // max line length
+#define MAXLINE 1000      /* max line length */
 #endif
 
 #ifndef LINENO_MAX 
-#define LINENO_MAX 99999    // max line number 
+#define LINENO_MAX 99999    /* max line number */
 #endif
 
 #ifndef LINENO_MIN
-#define LINENO_MIN 1        // lowest line number
+#define LINENO_MIN 1        /* lowest line number */
 #endif
 
 /* global variables */
-char *buffer, *tbuffer, cutbuffer[MAXLINE]={'\n'};
-int curpos=0, mode=0;
+char *buffer, *tbuffer, *undobuffer, cutbuffer[MAXLINE]={'\n'};
+int curpos=0, mode=0, undocurpos = 0;
 char linein[MAXLINE+1] = {};
 int localpos = 0;
-char ch[MAXLINE] = {};            // keyboard input 
-int RFLAG=0;                // test for tbuffer use at exit
+char ch[MAXLINE] = {};            /* keyboard input */ 
+int RFLAG=0;                /* test for tbuffer use at exit */
 
 /* define routines */
-void print(char *);         // print
+void print(char *);         /* print */
 void showmode(int);
-void clearBuffer(void);     // new
-void filesave(char *);      // save
-void fileload(char *);      // load
-void stats(void);           // stats
-void usage(void);           // help
-void delete(char *);        // delete a single line
-void paste(char *);         // paste the cut buffer to the buffer
-void insert(char *);        // insert a single line
-void find(char *);          // find a word
-void sort(char *);          // sort the buffer
-void repl(char *);          // global replace
-
+void clearBuffer(void);     /* new */
+void filesave(char *);      /* save */
+void fileload(char *);      /* load */
+void stats(void);           /* stats */
+void usage(void);           /* help */
+void delete(char *);        /* delete a single line */
+void paste(char *);         /* paste the cut buffer to the buffer */
+void insert(char *);        /* insert a single line */
+void find(char *);          /* find a word */
+void sort(char *);          /* sort the buffer  */
+void repl(char *);          /* global replace  */
+void undo_save(void);       /* save buffer and pointers for later undo */
+void undo(void);            /* undo last operation */
 
 /* start of main */
 int main(int argc, char **argv) {
+int n=0;
 
     /* set up memory for storage */
     buffer = (char*) malloc((MAXLINE * 2) * sizeof(char*));
     if (buffer == NULL) {
-        printf("memory error\n");
+        printf("memory error in main\n");
+        exit(1);
+    }
+    undobuffer = (char *)malloc((MAXLINE * 2) * sizeof(char *));
+    if (undobuffer == NULL) {
+        printf("memory error in main\n");
         exit(1);
     }
 
-    curpos = 0; // curpos is current position in the buffer 
+    curpos = 0; /* curpos is current position in the buffer */
 
     /* test command line - if argc==2 treat the option as filename to load */
     if (argc == 2) {
@@ -71,37 +82,37 @@ int main(int argc, char **argv) {
         fileload(loadcmd);
     }
 
-    if (argc > 2) {     // show usage and exit 
+    if (argc > 2) {     /* show usage and exit */
         printf("Usage: led [filename] \n");
         printf("where filename is a file to load at start\n");
         return 0;
     }
 
-    mode = 1;       // mode=1:input mode   0:edit mode
+    mode = 1;       /* mode=1:input mode   0:edit mode */
 
 inputMode:
     showmode(mode);
 
 inputLoop:    /* entry loop */
     localpos = 0;
-    printf("A>");       // show append mode cursor
+    printf("A>");       /* show append mode cursor */
     while ( (linein[localpos++] = fgetc(stdin)) != '\n');
 
     if (linein[0] == 0x02) {
-        mode = 0;  // ^B changes modes
+        mode = 0;  /* ^B changes modes */
         goto editMode;
     }
         
-    // increase buffer size by length of input line
-    tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   // add local size to total size
+    /* increase buffer size by length of input line */
+    tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   /* add local size to total size */
         if (tbuffer == NULL) {
         printf("memory error\n");
         exit(1);
     }
-    buffer = tbuffer;       // copy temp to real buffer
+    buffer = tbuffer;       /* copy temp to real buffer */
     RFLAG = 1;
 
-    for (int n=0; n!= localpos; n++)      // save local line to buffer
+    for (n=0; n!= localpos; n++)      /* save local line to buffer */
         buffer[curpos++] = linein[n];
     
     
@@ -115,17 +126,19 @@ editMode:   /* command loop */
 editLoop:
     /* get a command */
     localpos = 0;
-    printf("CMD>");   //show command prompt
-    for (int n=0; n<MAXLINE; n++) linein[n]='\0';   // clear buffer
-    while ( (linein[localpos++] = fgetc(stdin)) != '\n');
+    printf("CMD>");   /*  show command prompt  */
+    for (n=0; n<MAXLINE; n++) linein[n]='\0';   /* clear buffer  */
+    /* while ( (linein[localpos++] = fgetc(stdin)) != '\n'); */  /* alt form */
+    fgets(linein,sizeof(linein)-1,stdin);
+    localpos = strlen(linein);
 
-    // user hit ctrl-B/enter at pos 0
+    /* user hit ctrl-B/enter at pos 0 */
     if (linein[0] == 0x02) {
-        mode = 1;   // ^B changes modes
+        mode = 1;   /* ^B changes modes  */
         goto inputMode;
     }
     
-    linein[--localpos] = '\0';   // replace <cr> w/\0
+    linein[--localpos] = '\0';   /* replace <cr> w/\0  */
 
     /* test command */
     if ((strncmp(linein,"print",5) == 0) || (strncmp(linein,"list",4) == 0)) {
@@ -134,6 +147,7 @@ editLoop:
     }
 
     if (strncmp(linein,"new",3) == 0) {
+        undo_save();    /* save buffer and pointers for undo command  */
         clearBuffer();
         goto editLoop;
     }
@@ -159,26 +173,31 @@ editLoop:
     }
 
     if (strncmp(linein,"del",3) == 0) {
+        undo_save();
         delete(linein);
         goto editLoop;
     }
     
     if (strncmp(linein,"cut",3) == 0) {
+        undo_save();
         delete(linein);
         goto editLoop;
     }
 
     if (strncmp(linein,"copy",4) == 0) {
+        undo_save();
         delete(linein);
         goto editLoop;
     }
     
     if (strncmp(linein,"paste",5) == 0) {
+        undo_save();
         paste(linein);
         goto editLoop;
     }
 
     if (strncmp(linein,"ins",3) == 0) {
+        undo_save();
         insert(linein);
         goto editLoop;
     }
@@ -191,20 +210,27 @@ editLoop:
     }
 
     if (strncmp(linein,"sort",4) == 0) {
+        undo_save();
         sort(linein);
         goto editLoop;
     }
 
     if (strncmp(linein,"replace",7) == 0) {
+        undo_save();
         repl(linein);
         goto editLoop;
     }
 
     if (strncmp(linein,"replaceall",10) == 0) {
+        undo_save();
         repl(linein);
         goto editLoop;
     }
 
+    if (strncmp(linein,"undo",4) == 0) {
+        undo();
+        goto editLoop;
+    }
 
     if (strncmp(linein,"quit",4) == 0) goto done;
 
@@ -214,14 +240,15 @@ editLoop:
    
 done:    
     /* done */
-    free(buffer);   // tbuffer will close automatically
+    free(buffer);
+    free(undobuffer);
     exit(0);
 }
 /* --------- end of main ----------- */
 
 
 
-void clearBuffer(void) {    // clear the memory buffer
+void clearBuffer(void) {    /* clear the memory buffer */
     free(buffer);
     curpos = 0;
     buffer = (char*) malloc((MAXLINE * 2) * sizeof(char*));
@@ -229,6 +256,7 @@ void clearBuffer(void) {    // clear the memory buffer
         buffer[curpos]='\0';
         return;
     }
+    free(undobuffer);
     printf("Memory error in clearBuffer\n");
     exit(1);
 
@@ -258,18 +286,18 @@ void print(char *linein) {    /* display buffer */
     if (endline == 0) endline = LINENO_MAX;
     
     char *data = &buffer[0];
-    int line = 1;   // current line #
-    int row = 1;    // row counter
+    int line = 1;   /* current line # */
+    int row = 1;    /* row counter */
 
     int n=0;
     char chbuf[MAXLINE];
     for (n=0; n<MAXLINE; n++) chbuf[n] = '\0';
-    while ((data - &buffer[0]) < curpos-1) {    // getting a line of data at a time
-        for (n=0; n<MAXLINE; n++) {             // makes it easier to print ranges 
-            chbuf[n] = *data++;                 // of line numbers
-            if (chbuf[n] == '\n') break;        // and have formatting look good
+    while ((data - &buffer[0]) < curpos-1) {    /* getting a line of data at a time */
+        for (n=0; n<MAXLINE; n++) {             /* makes it easier to print ranges */
+            chbuf[n] = *data++;                 /* of line numbers */
+            if (chbuf[n] == '\n') break;        /* and have formatting look good */
         }
-        // got a \n
+        /* got a \n */
         if ((line >= startline) && (line <= endline))
             printf("%04d: %s",line,chbuf);
         if (line > endline) {
@@ -281,7 +309,7 @@ void print(char *linein) {    /* display buffer */
         if ((line >= startline) && (line <= endline)) 
             row++;
         else
-            row = 1;                // don't count rows if we're not printing them
+            row = 1;                /* don't count rows if we're not printing them */
         if (row < 25) continue;
         row = 1;
         printf("\n--- MORE ---");
@@ -303,12 +331,13 @@ void print(char *linein) {    /* display buffer */
 
 
 
-void filesave(char *linein) {   // save buffer to file
+void filesave(char *linein) {   /* save buffer to file */
     FILE *outfile;
     char cmd[MAXLINE] = {}, filename[MAXLINE] = {};
+    int i=0;
 
     int localpos = 0;
-    if (strlen(linein) == 4) {  // no filename given
+    if (strlen(linein) == 4) {  /* no filename given */
         printf("Save to filename? ");
         while ( (linein[localpos++] = fgetc(stdin)) != '\n');
         linein[--localpos] = '\0';
@@ -324,7 +353,7 @@ void filesave(char *linein) {   // save buffer to file
     }
 
     /* save buffer */
-    for (int i=0; i!= curpos; i++) 
+    for (i=0; i!= curpos; i++) 
         fprintf(outfile,"%c",buffer[i]);
     fflush(outfile);
     fclose(outfile);
@@ -337,12 +366,13 @@ void filesave(char *linein) {   // save buffer to file
 
 
 
-void fileload(char linein[MAXLINE]) {   // load file into buffer
+void fileload(char linein[MAXLINE]) {   /* load file into buffer */
     FILE *infile;
     char ch, cmd[MAXLINE] = {}, filename[MAXLINE] = {};
     int localpos = 0;
-    
-    if (strlen(linein) == 4) {  // no filename given 
+    int n=0;
+
+    if (strlen(linein) == 4) {  /* no filename given  */
         printf("Load from filename? ");
         while ((linein[localpos++] = fgetc(stdin)) != '\n');
         linein[--localpos] = '\0';
@@ -364,24 +394,24 @@ void fileload(char linein[MAXLINE]) {   // load file into buffer
             printf("line is %s\n",linein);
             exit(1);
         }
-        // printf("%c",ch);     /* print file as it loads */
+        /* printf("%c",ch); */     /* print file as it loads */
         if (ch == '\n') {
-            // save buffer
-            tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   // add local size to total size
+            /* save buffer */
+            tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   /* add local size to total size */
             if (tbuffer == NULL) {
                 printf("memory error in fileload\n");
                 exit(1);
             }
-            buffer = tbuffer;       // copy temp to real buffer
+            buffer = tbuffer;       /* copy temp to real buffer */
             RFLAG = 1;
 
-            for (int n=0; n!= localpos; n++)      // save local line to buffer
+            for (n=0; n!= localpos; n++)      /* save local line to buffer */
                 buffer[curpos++] = linein[n];
             localpos = 0;
         }
         continue;
     }
-    // EOF reached
+    /* EOF reached */
     fclose(infile);
     printf("File loaded to buffer\n");
     return;
@@ -390,13 +420,13 @@ void fileload(char linein[MAXLINE]) {   // load file into buffer
 
 
 void stats(void) {  /* show buffer stats */
-    int line=0, ct=0;
+    int line=0, ct=0, n=0;
     printf("Buffer size %d bytes\n",curpos);
     for (ct=0; ct<curpos; ct++) 
         if (buffer[ct]=='\n') line++;
     printf("%d lines\n",line);
     printf("Contents of the cut buffer:\n");
-    for (int n=0; n<MAXLINE; n++) {
+    for (n=0; n<MAXLINE; n++) {
         printf("%c",cutbuffer[n]);
         if (cutbuffer[n] == '\n') break;
     }
@@ -410,24 +440,26 @@ void stats(void) {  /* show buffer stats */
 
 void usage(void) {   /* show command list */
     printf("\nLine EDitor Commands: \n");
-    printf("pressing ctrl-b  & enter at position 0 switches modes\n");
-    printf("new                 Clear Buffer\n");
-    printf("load [filename]     Load a file into the buffer\n");
-    printf("save [filename]     Save the buffer to a file\n");
-    printf("print [start][end]  Show buffer contents start/end are line #'s\n");
-    printf("print by itself prints all the lines\n");
-    printf("At --MORE-- press <cr> for next, q<cr> to stop listing\n");
-    printf("del [line number]   Delete a single line\n");
-    printf("ins [line number]   Insert text BEFORE line number. ctrl-b and enter stops insert\n");
-    printf("cut [line number]   Delete a line, saving it in the cut buffer for later use\n");
-    printf("copy [line number]  Copy a line to the cut buffer for later use\n");
-    printf("paste [line number] Paste the cut buffer BEFORE line number\n");
-    printf("stats               Show buffer size, other stats\n");
-    printf("find [string]       Find string in the buffer. Prints the line# & entire line\n");
-    printf("sort                Sort the buffer\n");
-    printf("replace [old][new]  replace the string 'old' with the string 'new'\n");
-    printf("replaceall [old][new]   Global replace every occurance of 'old' with 'new'\n");
-    printf("quit                Exit the program (no automatic save)\n");
+    printf("Pressing ctrl-b then enter on an empty line switches modes\n\n");
+    printf("new                     Clear the buffer.\n");
+    printf("load [filename]         Load a named file into end of the buffer.\n");
+    printf("save [filename]         Save the buffer to a named file.\n");
+    printf("print [start][end]      Show buffer contents. start/end are optional line #'s.\n");
+    printf("print by itself prints all the lines.\n");
+    printf("at --MORE-- press <cr> for next, q<cr> to stop listing.\n");
+    printf("del [line number]       Delete a single line.\n");
+    printf("ins [line number]       Insert text BEFORE line number. ctrl-b then enter stops insert.\n");
+    printf("cut [line number]       Delete a line, saving it to the cut buffer for later use.\n");
+    printf("copy [line number]      Copy a line to the cut buffer for later use.\n");
+    printf("paste [line number]     Paste the cut buffer BEFORE line number.\n");
+    printf("stats                   Show buffer stats.\n");
+    printf("find [string]           Find string in the buffer. Prints the line# & entire line.\n");
+    printf("sort                    Alphabetic sort of the buffer. Destructive to original.\n");
+    printf("replace [line#][old][new] & replaceall [line#][old][new]\n");
+    printf("Replaces 'old' with 'new' starting at line 'line#'. replace does this once.\n");
+    printf("replaceall does the same but from line# until the end of the buffer\n");
+    printf("undo                    Undo the last buffer changing operation\n");
+    printf("quit                    Exit the program (no automatic save).\n");
     printf("\nPrompts: A> Append, I> Insert, CMD> Command\n");
     printf("\n");
     return;
@@ -455,7 +487,7 @@ void delete(char *linein) {  /* delete, copy or cut a line */
             endpos = n;
             if (line == linectr) 
                 goto del1;
-            startpos = endpos+1;    // skip the \n
+            startpos = endpos+1;    /* skip the \n */
         }
     }
     if (line != linectr) {
@@ -523,7 +555,7 @@ int n = 0, startpos = 0, endpos = 0, dist = 0;
 
     /* find the length of the cut buffer */
     for (n=0; n<MAXLINE; n++) 
-        if (cutbuffer[n] == '\n') break;    // length of cutbuffer
+        if (cutbuffer[n] == '\n') break;    /* length of cutbuffer */
     if (n == MAXLINE) {
         printf("cut buffer is empty/corrupt\n");
         return;
@@ -563,7 +595,7 @@ int n=0, startpos=0, endpos=0;
         return;
     }
 
-    // get line number
+    /* get line number */
     sscanf(linein,"%s %s",cmd,linenumber);
     line = atof(linenumber);
     if ((line <= 0) || (line > 99999)) {
@@ -571,7 +603,7 @@ int n=0, startpos=0, endpos=0;
         return;
     }
 
-    // got a valid line number in line, now see if it exists
+    /* got a valid line number in line, now see if it exists */
     for (n=0; n<=curpos; n++) {
         if (buffer[n] == '\n')
             linectr+=1;
@@ -581,7 +613,7 @@ int n=0, startpos=0, endpos=0;
             return;
     }
 insLoop:
-    // line exists - find position for insert function
+    /* line exists - find position for insert function */
     linectr = 0;
     startpos = 0;
     endpos = 0;
@@ -590,7 +622,7 @@ insLoop:
             linectr++;
             endpos = n+1;
         }
-        if (line == linectr) break;     // match, n points to start of line
+        if (line == linectr) break;     /* match, n points to start of line */
         startpos = endpos;
     }
 
@@ -602,24 +634,24 @@ insLoop:
     if (linein[0] == 0x02) return;
 
 
-    // save buffer
-    tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   // add local size to total size
+    /* save buffer */
+    tbuffer = (char*)realloc(buffer,(curpos+localpos+1));   /* add local size to total size */
         if (tbuffer == NULL) {
         printf("memory error in insert\n");
         exit(1);
     }
-    buffer = tbuffer;       // copy temp to real buffer
+    buffer = tbuffer;       /* copy temp to real buffer */
     RFLAG = 1;
 
-    // shift buffer up
+    /* shift buffer up */
     int newcurpos = curpos + localpos;
 
 
-    for (int n=0; n!=(curpos-startpos+1); n++) 
+    for (n=0; n!=(curpos-startpos+1); n++) 
         buffer[(newcurpos-n)] = buffer[(curpos-n)];
 
-    // insert new line
-    for (int n=0; n != localpos; n++)   // was n < localpos
+    /* insert new line */
+    for (n=0; n != localpos; n++)   
         buffer[startpos+n] = linein[n];
 
     curpos = newcurpos;
@@ -631,7 +663,7 @@ insLoop:
 }
 
 
-void find(char *linein) { // find a word in the buffer
+void find(char *linein) { /* find a word in the buffer */
 
     int linenum = 1;
     char line[MAXLINE];
@@ -640,22 +672,22 @@ void find(char *linein) { // find a word in the buffer
     while (1) {
     
         for (n=0; n<MAXLINE-1; n++)
-            line[n] = '\0';         // clear temp buffer
+            line[n] = '\0';         /* clear temp buffer */
     
         n = 0;
-        for (i=pos; i<pos+MAXLINE; i++) {     // load up a line
+        for (i=pos; i<pos+MAXLINE; i++) {     /* load up a line */
             line[n++] = buffer[i];
             if (buffer[i] == '\n')
                 break;
         }
     
         line[n] = '\0';
-        if (strstr(line,linein) != NULL)   // match
+        if (strstr(line,linein) != NULL)   /* match */
             printf("%05d: %s",linenum,line);
 
         linenum++;
-        pos = i+1;      // go past \n at end of line
-        if (pos >= curpos) break;   // nothing exists past curpos
+        pos = i+1;      /* go past \n at end of line */
+        if (pos >= curpos) break;   /* nothing exists past curpos */
         continue;
 
     }
@@ -665,33 +697,33 @@ void find(char *linein) { // find a word in the buffer
 }
 
 
-void sort(char *linein) {       // sort the buffer
+void sort(char *linein) {       /* sort the buffer */
     int line=0, listline = 0;
-    int n=0;
+    int n=0, x=0;
     int pos = 0;
     char templine[MAXLINE];
 
     for (n=0; n<curpos; n++) 
-        if (buffer[n] == '\n') line+=1;     // count line numbers in buffer
+        if (buffer[n] == '\n') line+=1;     /* count line numbers in buffer */
 
     listline = 1;
-    char sortlist[line+1][MAXLINE]; // create a location to hold the sorted list
+    char sortlist[line+1][MAXLINE]; /* create a location to hold the sorted list */
     char locbuf[MAXLINE];
     while (pos < curpos) {
-        for (n=0; n<MAXLINE; n++) locbuf[n] = '\0'; // clear the buffer
+        for (n=0; n<MAXLINE; n++) locbuf[n] = '\0'; /* clear the buffer */
         for (n=0; n<(pos+MAXLINE); n++) {
             locbuf[n] = buffer[pos+n];
             if (buffer[pos+n] == '\n') break;
         }    
         strcpy(sortlist[listline],locbuf);
         listline++;
-        pos = pos+n+1;      // +1 to skip the \n
+        pos = pos+n+1;      /* +1 to skip the \n */
         if (pos < curpos) continue;
         break;
     }
-    // sorted list is populated
+    /* sorted list is populated */
 
-    // sort the list
+    /* sort the list */
     int count = 1;
     while (count < line+1) {
         for (n=0; n<line; n++) {
@@ -699,7 +731,6 @@ void sort(char *linein) {       // sort the buffer
                 strcpy(templine,sortlist[n]);
                 strcpy(sortlist[n],sortlist[n+1]);
                 strcpy(sortlist[n+1],templine);
-                //printf(".");
             } 
         }
         count++;
@@ -710,7 +741,7 @@ void sort(char *linein) {       // sort the buffer
     curpos = 0;
     buffer = (char*) malloc(((line * MAXLINE) + 1) * sizeof(char*));
     for (n=0; n < line+1; n++) {
-        for (int x=0; x<strlen(sortlist[n]); x++){
+        for (x=0; x<strlen(sortlist[n]); x++){
             buffer[curpos] = sortlist[n][x];
             curpos++;
         }
@@ -720,25 +751,51 @@ void sort(char *linein) {       // sort the buffer
 }
 
 
-/* replace (globally) a string (replace=once, replaceall=global) */
-/* format: replace/replaceall [orig string] [replacement string] */
+/* replace a string (replace=once, replaceall=global) */
+/* format: replace/replaceall [start line] [orig string] [replacement string] */
 void repl(char *linein) {
-    char cmd[MAXLINE]={}, orig[MAXLINE]={}, replace[MAXLINE]={};
-    sscanf(linein,"%s %s %s",cmd,orig,replace);
-    int distance = 0, startpos = 0, endpos = 0;
-    int newcurpos = 0;
-    int FLAG = 0;
+    char cmd[MAXLINE]={}, linenum[MAXLINE]={}, orig[MAXLINE]={}, replace[MAXLINE]={};
+    sscanf(linein,"%s %s %s %s",cmd,linenum,orig,replace);
+    int distance = 0, startpos = 0, endpos = 0, line = 0;
+    int newcurpos = 0, lineptr = 0;
+    int FLAG = 0, n=0;
 
     /* error checking */
+    line = atoi(linenum);
+    if ((line < LINENO_MIN) || (line > LINENO_MAX)) {
+        printf("invalid line number %d\n",line);
+        return;
+    }
+
     if ((strlen(orig)==0) || (strlen(replace)==0)) {
         printf("Format: replace/replaceall [original string] [replacement string]\n");
         return;
     }
 
-replaceBegin:       // loop back to here for global
+    /* find starting position (lineptr) given a line number in line */
+    for (n=0; n<curpos; n++) {
+        if (n == curpos-1) {    /* line not found */
+            printf("line %d not found\n",line);
+            return;
+        }
+        if (line==1) {  /* special case */
+            lineptr=0;
+            break;
+        }
+        if (buffer[n] == '\n') {
+            lineptr++;
+            if (lineptr == line-1) {    /* want to start at beginning of line #, not after */
+                lineptr = n+1;
+                break;
+            }     
+        }
+    }
+
+
+replaceBegin:       /* loop back to here for global */
     /* search for instance */
     distance = 0; startpos = 0; endpos = 0;
-    char *data = &buffer[0];
+    char *data = &buffer[lineptr];      /* was 0 */
     char *p = strstr(data,(char *)orig);
     if (p == NULL) {
         if (!FLAG) printf("string %s not found\n",orig);
@@ -755,14 +812,14 @@ replaceBegin:       // loop back to here for global
         if (*p != ' ') break; 
         if (*p != '\n') break;
     }
-    // strings end either w/a newline or space.
+    /* strings end either w/a newline or space. */
 
     endpos = (p - &buffer[0]); 
     distance = (endpos - startpos) + 1;
    
     /* old string length = new string length */
     if (strlen(orig) == strlen(replace)) {
-        for (int n=0; n<strlen(replace); n++)
+        for (n=0; n<strlen(replace); n++)
             buffer[startpos+n] = replace[n];
         FLAG=1;
         if (strcmp(cmd,"replace") == 0) return;
@@ -772,13 +829,13 @@ replaceBegin:       // loop back to here for global
 
     /* old string length > new string length */ 
     if (strlen(replace) < strlen(orig)) {
-       for (int n=0; n<strlen(replace); n++)
+       for (n=0; n<strlen(replace); n++)
            buffer[startpos+n] = replace[n];
 
     /* shift down the difference */   
         endpos = startpos + strlen(orig);
         distance = strlen(orig) - strlen(replace);
-        for (int n=endpos; n<curpos; n++)
+        for (n=endpos; n<curpos; n++)
             buffer[n-distance] = buffer[n];
         curpos = curpos - distance;
         FLAG=1;
@@ -799,11 +856,11 @@ replaceBegin:       // loop back to here for global
         RFLAG = 1;
         /* move buffer contents up by distance */
         newcurpos = curpos + distance;
-        for (int n=0; n != (curpos-endpos+1); n++)
+        for (n=0; n != (curpos-endpos+1); n++)
             buffer[newcurpos-n] = buffer[curpos-n];
         curpos = newcurpos;
         /* now replace the string */
-        for (int n=0; n!= strlen(replace); n++)
+        for (n=0; n!= strlen(replace); n++)
             buffer[startpos+n] = replace[n];
         FLAG = 1;
         if (strcmp(cmd,"replace") == 0) return;
@@ -814,5 +871,33 @@ replaceBegin:       // loop back to here for global
     printf("unknown error in replace\n");
     return;
 }
+
+
+void undo_save(void) {  /* save buffer and pointers  */
+    tbuffer = (char *)realloc(undobuffer,curpos);   /* copy buffer to undo buffer */
+    if (undobuffer == NULL) {
+        printf("memory error in undo_save\n");
+        exit(1);
+    }
+    undobuffer = tbuffer;
+    memcpy(undobuffer,buffer,curpos);
+    undocurpos = curpos;
+    return;
+}
+
+
+void undo(void) {   /* undo last operation by restoring buffer and pointers */
+    curpos = undocurpos;
+    free(buffer);
+    buffer = (char *)malloc(curpos);
+    if (buffer == NULL) {
+        printf("memory error in undo\n");
+        exit(1);
+    }
+    memcpy(buffer,undobuffer,curpos);
+    return;
+}
+
+
 
 /* done */

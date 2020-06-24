@@ -35,15 +35,15 @@ Command mode is where you run various commands that manipulate the
 buffer. The prompt will show CMD> when in command mode.
 .PP
 To switch between append and command mode press CTRL-B and the 
-enter/return key at the start of a line. 
+enter/return key at the start of a new line. 
 .PP
 To exit insert mode and return to command mode press CTRL-B and the 
-enter/return key, again at the start of a line.
+enter/return key, again at the start of a new line.
 .PP
 .B NOTE:
 .PP
 Switching commands (pressing CTRL-B and enter/return) only works when the
-cursor is on the start of the line (position 1). 
+cursor is on the start of a new line.
 .SH COMMANDS
 .TP
 .B new
@@ -92,7 +92,7 @@ The del command will delete a single line using the given linenumber.
 .B ins [linenumber]
 The ins command will start inserting text at the start of the given linenumber.
 Inserting will continue until a CTRL-B and enter/return is pressed at the start
-of an empty line.
+of a new line.
 .TP
 .B cut [linenumber]
 The cut command deletes linenumber from the main buffers, saving it in a 
@@ -121,13 +121,27 @@ and the entire line will be displayed.
 The sort command does an alphabetic sort of the buffer replacing the current 
 buffer contents with the sorted result.
 .TP
-.B replace [old string] [new string] & replaceall [old string] [new string]
-The replace command searches the buffer for the first instance of 'string' 
-and replaces it with 'new string'. 
-The replaceall command searches the entire document for 'old string' and
-replaces it with 'new string'. In both cases 'old string' and 'new string'
-can have no white spaces, and must be non-NULL. 'old string' can be part of 
-an existing string but ends with either a newline ('\\n') or space (' ');
+.B replace [starting line number] [old string] [new string] 
+.TP
+.B replaceall [starting line number] [old string] [new string]
+The replace command searches the buffer from the provided line number for the 
+first instance of 'string' and replaces it with 'new string'. 
+The replaceall command searches the entire document starting at the provided 
+line number for 'old string' and replaces it with 'new string'. In both 
+cases 'old string' and 'new string' can have no white spaces, and must be 
+non-NULL. 'old string' can be part of an existing string but ends with either 
+a newline ('\\n') or space (' ');
+.TP
+.B undo
+The undo command un-does the last buffer-changing operation. Use this when
+the command has done something horrible to your buffer. 
+Example: you type 
+.B new 
+then realize you didn't save your work.
+The undo command will restore your buffer to how it was before you typed 
+.B new.
+The undo command does not work with commands that do not modify the buffer (print/list)
+but works wonderfully with new, replaceall, etc.
 .TP
 .B quit
 The quit command exits the line editor immediately. Any unsaved buffer contents
@@ -138,12 +152,8 @@ before quitting.
 led is written by Kurt Theis.
 .SH
 .B BUGS
-There are several instances where buffer overflows can occur. The scanf's don't 
-check for max length lines, and fgetc's are used. MAXLINE > 1000 should handle
-most issues but it's something to be aware of.
-.PP
-led is stored on my Github storage. Any bugs or changes should be addressed
-there.
-.PP
-
-
+Please report bugs to the github page where this is hosted.
+.SH
+.B NOTES
+The source is pure ansi and should compile cleanly. Converting to K&R is mostly
+doable but some versions may give you trouble.
