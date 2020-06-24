@@ -1,6 +1,6 @@
 
 
-##LED##  an easy to use, full-featured multi-platform line editor with a consistant UI
+LED is an easy to use, full-featured multi-platform line editor with a consistant UI
 written in ansi c.
 
 I use many different computer systems, and while they all have some sort of line editor
