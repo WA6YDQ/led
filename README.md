@@ -1,6 +1,6 @@
 
 
-##LED##  an easy to use, full-featured multi-platform line editor with a consistant UI
+**led**  an easy to use, full-featured multi-platform line editor with a consistant UI
 written in ansi c.
 
 I use many different computer systems, and while they all have some sort of line editor
@@ -15,7 +15,7 @@ Place led in your /usr/local/bin or wherever your executables reside.
 There is a man page (led.1). Place this file in your /usr/local/man/man1 directory or
 where you keep your local man pages.
 
-LED has enough commands to write meaningful documants/programs/whatever but not
+LED has enough commands to write meaningful documents/programs/whatever but not
 so many that they get in the way. A lot of led was written with led.
 
 When LED is started, you will be placed in APPEND mode. Everything you type will
@@ -26,6 +26,8 @@ loaded into the buffer and, again, you will be placed in APPEND mode.
 
 Commands are in the form of a period followed by a single letter. ie .l, .q
 and need to be the at the start of an empty line.
+
+**Please see the man page for more up-to-date and detailed information.**
 
 **Commands for LED are as follows:**
 
@@ -56,7 +58,7 @@ start inserting text BEFORE linenumber.
 To exit insert mode, press .q and enter/return at the start of an empty line.
 
 **.x [line number]**
-delete the line linenumber saving to cut text in a buffer
+cut the line linenumber, saving the cut text in a buffer
 
 **.c [linenumber]**
 copy the line linenumber to a buffer
@@ -77,7 +79,6 @@ Same as replace, but performs the operation globally starting at linenumber.
 
 **.undo**
 Undo un-does whatever horrible thing you just did to your buffer.
-Example: typing 'new' without saving the contents.
 There is only one level of undo.
 
 **.os**
@@ -86,6 +87,7 @@ in the beginning of the source file.
 
 Prompts:
 >  append mode
+
 insert> insert mode
 
 See the man page (led.1) for any more information.
