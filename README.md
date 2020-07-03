@@ -85,10 +85,16 @@ There is only one level of undo.
 Drop to a command prompt (/bin/sh on *nix systems). This is set by a #define 
 in the beginning of the source file.
 
-Prompts:
->  append mode
+There are two prompts:
+append mode: >
+insert mode: insert>
 
-insert> insert mode
+Normally you will see the '>' prompt. Everything you type here except commands
+gets appended to the end of the text buffer.
+
+When inserting text before a line you will see 'insert>'.  The normal commands 
+do not work in insert mode. The only special command that does work is the '.q'
+command that exits the insert mode and goes back to the append mode.
 
 See the man page (led.1) for any more information.
 
