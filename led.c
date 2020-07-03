@@ -24,7 +24,7 @@
  * .q quit w/o saving
  * All commands are terminated with the enter key. See the help() function at program end.
  *
- * This is (C) k theis 2020 and licensed under the terms of the MIT license. 
+ * This is (C) kurt theis 2020 and licensed under the terms of the MIT license. 
  * It is free to use, change and distribute as you see fit. No warrantee is 
  * implied or given.
  *
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
             } 
             /* if just .s\n and filename not defined or not wanted */
             if (save(line))
-                printf("EH?\n");
+                printf("EH?\n"); /* no filename given in save() */
             continue;
         }
 
@@ -544,7 +544,7 @@ replaceBegin:       /* loop back to here for global */
         return;
     }
     /* get start position of string */
-    startpos = (p - buffer);    // was &buffer[0]
+    startpos = (p - buffer);   
 
     /* make sure the beginning is either a space or \n */
     /* (some test here - needs work) */
@@ -556,7 +556,7 @@ replaceBegin:       /* loop back to here for global */
     }
     /* strings end either with newline or space. */
 
-    endpos = (p - buffer);      // was &buffer[0]
+    endpos = (p - buffer);  
     distance = (endpos - startpos) + 1;
 
     /* old string length = new string length */
