@@ -1,159 +1,233 @@
-.TH LED 1 2020-06-20
+.TH LED 1 2020-06-30
 .SH NAME
 led \-
-A simple line editor designed for cross-platform
+A full-featured line editor written in ansi-c for cross-platform
 operating systems where a consistant design and UI is wanted.
 .SH SYNOPSIS
-.B led [filename] 
-where filename is a text file to open on start. If a filename is given
-led will load the file into the buffer.
-If no filename is given led will start with an empty buffer.
+.B led [filename]
+where filename is an optional textfile to open on start. If a 
+filename is supplied, led will load it at program start. In addition,
+when saving the file, the supplied filename will be used rather than
+the user having to supply one.
+If no filename is given at program start, no file will be loaded.
 .PP
-In either case led will start in append mode. You will see a A>
-prompt at startup.
-.SH DESCRIPTION
+In either case, led will start in append mode. You will see a '>'
+as a prompt. Everything typed (except commands: see below) will be
+saved to the text buffer. Commands given at the start of an otherwise
+empty line control operation of led.
+.SH BUILDING
 To build led using an ansi-c compiler:
-cc -o led led.c -Wall
+
+.B cc -o led led.c -Wall -ansi
 .PP
-led is written and initially build on a linux system but has been 
-successfully built on other systems as well.
-.SH MODES
-led has 3 operating modes: 
-.PP
-.B APPEND
-In append mode anything typed will be added to the end of the buffer.
-When the led program is started, you will be in the append mode. The
-displayed prompt will show A> to indicate that you are in the append mode.
-.PP
-.B INSERT 
-To get to the insert mode type ins [line number].
-You can only enter insert mode after some text has been entered in
-the buffer. The prompt will show I> when in insert mode.
-.PP
-.B COMMAND
-Command mode is where you run various commands that manipulate the
-buffer. The prompt will show CMD> when in command mode.
-.PP
-To switch between append and command mode press CTRL-B and the 
-enter/return key at the start of a new line. 
-.PP
-To exit insert mode and return to command mode press CTRL-B and the 
-enter/return key, again at the start of a new line.
-.PP
-.B NOTE:
-.PP
-Switching commands (pressing CTRL-B and enter/return) only works when the
-cursor is on the start of a new line.
+.B led 
+was initially written on a linux system but has been compiled on various
+other systems as well.
+.SH DESCRIPTION
+.B led
+is a line oriented text editor that follows the ansi-c standard. As such
+it can be compiled on many different OS's (unix, vax, PRIMOS, RSTS)
+where a consistant user interface is desired. It has enough features to be
+useful and, unlike Teco, nothing gets in the way. 
+.B led
+has enough power to do actual work. Much of 
+.B led
+was written on 
+.B led.
+
+A line editor is a text editor that operates on complete lines of text, verses
+a cursor-based editor that allows cursor movement up/down/left/right. 
+.B vi and vim
+are examples of cursor-based editors.
+
+The reason for a line editor is many older computer terminals and teletypes
+work only on a line at a time. Many older minicomputers are also cursor-unaware.
+
 .SH COMMANDS
+.B led 
+has several commands to manipulate the main text buffer and otherwise 
+control operation. Commands are given at the start of an otherwise blank 
+line and are preceeded with a period '.' Commands can be UPPER CASE or 
+lower case to account for different terminals.
 .TP
-.B new
-The new command clears the buffer and resets the buffer pointer to 0.
-Everything that was in the buffer will be erased. The contents of the
-cut buffer (used in cut/copy/paste) is unchanged.
+.B .q
+Quit the editor without saving the buffer. The program terminates immediately.
 .TP
-.B load [filename]
-The load command will load a text file at the current position within 
-the buffer. If the buffer is empty, the loaded file will be the only 
-data in the buffer. If the buffer already had data in it the loaded file
-will be appended to the end of the buffer.
-If no filename is given you will be asked for one. If the file does not
-exist an error message will be displayed and you will be returned to command
+.B .e
+Exit with save (you will be prompted for a filename).
+.TP
+.B .undo
+This undo's the last buffer-changing commands except when typing in text
+in append mode. If the last entered line needs to be deleted, just delete it
+with the .d command (see below).
+.TP
+.B .l [start line number] [last line number]
+The .l (list) command displays the contents of the buffer proceeded by a
+line number. The line numbers are generated to help you - they otherwise
+do not exist.
+Both the start line number and last line number are optional.
+
+.B .l
+
+The .l command by itself displays from the start of the buffer thru the
+end. Every 24 lines (set up as a #define) the listing will stop and display
+--- MORE --- and wait for you to press the enter key. Pressing the enter 
+key will display another page of text. If you are done looking at your text
+press the 'q' key and press enter. The listing will stop and you will be
+returned to append mode.
+
+.B .l 50
+
+This will start the display listing at line 50 (if it exists). The
+listing will continue until the end of the buffer.
+ 
+.B .l 50 100
+
+This will display lines 50 thru 100 (inclusive).
+
+.B .l - 50
+
+This will display thru line 50 (starting at line 1). Note the space between
+ '.l' '-' and  '50'.
+
+.B .l 200 -
+
+This will display lines 200 thru the end of the file. Again, note spaces 
+between the '.l' '200' and '-'.
+
+
+.TP
+.B .s [filename]
+Save the buffer to a file. If 
+.B led
+was started by loading a filename, that filename will be used to save the file.
+Otherwise you can supply a filename. Typing .s and enter by itself will force 
+a prompt asking for a filename. Either way, if the file exists, you will be asked
+if you want to replace it. Type either 'y' or 'Y' to replace the file, anything 
+else to abort.
+.TP
+.B .f string
+Find string within the text buffer. The string is bounded by whitespace. If the
+string is found, the line number and entire line will be displayed. You can 
+search for incomplete words as well. 
+
+.B .f in 
+
+will find all occurances of 
+.B print
+as well as any word with 'in' in it (int, line, ,minor, etc).
+.TP
+.B .d line#
+Delete the line line#. The supplied line number will be deleted.
+
+Example: 
+.B .d 10 
+will delete line number 10 from the buffer.
+.TP
+.B .x line#
+Cut the line line#. The supplied line number will be removed from the buffer
+and stored in a special cut buffer. 
+
+Example:
+.B   .x 12
+Line 12 will be cut from the buffer.
+.TP
+.B .c line#
+
+Copy the line line# from the buffer to a special cut buffer. Line 50 will
+remain unchanged.
+
+Example:
+.B   .c 50
+Copy line 50 from the buffer.
+.TP
+.B .p line#
+Paste the cut buffer 
+.B before
+the given line#. If the cut buffer is empty no action will occur. The cut buffer
+is not erased when pasting so that you can paste a line multiple times in the 
+buffer. To 
+.B append
+the cut buffer to the end of the file, use a line number one higher than the 
+buffer shows. If the buffer ends at line 10 when listed, use
+.B .p 11
+to append the text.
+
+Example:
+.B .p 10
+Paste the cut buffer 
+.B before
+line 50.
+.TP
+.B .i line#
+Start inserting typed text 
+.B before
+line#. A special 
+.B insert>
+prompt will be displayed showing insert mode.
+Type 
+.B .q
+on an otherwise empty line to exit 
+.B insert
 mode.
+
+Example:
+.B .i 10
+Start inserting characters 
+.B before
+line 10.
 .TP
-.B save [filename]
-The save command will save the contents of the buffer to the given filename.
-If a filename is not given you will be asked to supply one. If a file can't 
-be created an error message will be shown and you will be returned to the 
-command mode.
+.B .r line# {old string} {new string}
+Replace the first occurance of {old string} with {new string} starting at line#.
+If {old string} occurs more than once on the same line only the first instance 
+will be replaced. Replacement within a string is permitted. 
+
+Example:
+.B .r 10  file") file\en")
+will alter the line: 'printf("end of file");' with 'printf("end of file\en");'
+If [old string] is not found on line# no action will take place.
 .TP
-.B print [start linenumber] [end linenumber] 
-The print command will display the contents of the buffer preceeded
-by an internal line number. The line number is not a part of the buffer but
-is supplied for reference to help you manipulate the buffer contents.
-.BR
-If no linenumber is supplied the buffer will be displayed from the beginning.
-If start/end line numbers are given, the buffer will be displayed from start
-to end (inclusive). If just the start line number is given, the text buffer
-will be displayed from the start number to the buffer end.
+.B .ra line# {old string} {new string}
+Replace All. This performs the same action as 
+.B .r
+except it starts at line# and replaces 
+.B every
+occurance throughout the file.
 .TP
-.B NOTE: 
-Line numbers are equivalant to newlines. The text buffer starts at
-buffer location 0 which corrosponds to line 1. Each newline will increment the
-linenumber count by one.
-.BR
-The print/list commands will show 24 lines at a time. At the 24th line
--- MORE -- will be displayed and wait for you to press either enter/return
-to show the next set of lines, or press 'q' and enter/return to return to command
-mode.
+.B .h
+Help. Show a summary listing of commands available in 
+.B led
 .TP
-.B del [linenumber]
-The del command will delete a single line using the given linenumber.
+.B .bak
+.B led
+has a feature in that if a fatal error occurs (ie. out of memory) the buffer
+contents will (attempt to) be saved to a file called 'edit_PID_.bak'
+The user can invoke this save routine on his/her own by using the .bak command.
+This can be done to make a temperary copy during editing.
 .TP
-.B ins [linenumber]
-The ins command will start inserting text at the start of the given linenumber.
-Inserting will continue until a CTRL-B and enter/return is pressed at the start
-of a new line.
+.B Operating System specific commands
 .TP
-.B cut [linenumber]
-The cut command deletes linenumber from the main buffers, saving it in a 
-special cut buffer for later use.
+.B .os
+The .os command starts a command shell (specifically /bin/sh on a unix system).
+This can be useful while editing source code so that you can compile the file
+without leaving the editor (and your current editing position). Typing 
+.B exit
+at the shell prompt ($) will leave the shell and return the user to the last 
+state 
+.B led
+was in.
 .TP
-.B copy [linenumber]
-The copy command copies linenumber from the main buffer, saving it in 
-a special cut buffer for later use.
-.TP
-.B paste [linenumber]
-The paste command pastes the cut buffer before linenumber. The cut buffer is
-unchanged so that a paste can occur multiple times throughout the document.
-.TP
-.B stats
-The stats command displays the size of the buffer and line number count.
-Also the contents of the cut buffer (used in cut/copy/paste) are shown.
-.TP
-.B find [string]
-The find command searches the buffer for the specified string. There can
-be up to 1000 characters in the search string, but the search string ends at
-the first white space. A single character can also be searched for.
-The output of the find command will be the line number the string resides on
-and the entire line will be displayed.
-.TP
-.B sort
-The sort command does an alphabetic sort of the buffer replacing the current 
-buffer contents with the sorted result.
-.TP
-.B replace [starting line number] [old string] [new string] 
-.TP
-.B replaceall [starting line number] [old string] [new string]
-The replace command searches the buffer from the provided line number for the 
-first instance of 'string' and replaces it with 'new string'. 
-The replaceall command searches the entire document starting at the provided 
-line number for 'old string' and replaces it with 'new string'. In both 
-cases 'old string' and 'new string' can have no white spaces, and must be 
-non-NULL. 'old string' can be part of an existing string but ends with either 
-a newline ('\\n') or space (' ');
-.TP
-.B undo
-The undo command un-does the last buffer-changing operation. Use this when
-the command has done something horrible to your buffer. 
-Example: you type 
-.B new 
-then realize you didn't save your work.
-The undo command will restore your buffer to how it was before you typed 
-.B new.
-The undo command does not work with commands that do not modify the buffer (print/list)
-but works wonderfully with new, replaceall, etc.
-.TP
-.B quit
-The quit command exits the line editor immediately. Any unsaved buffer contents
-will be lost without warning. If you want to save the buffer, run save [filename]
-before quitting.
-.SH
-.B AUTHOR
-led is written by Kurt Theis.
-.SH
-.B BUGS
-Please report bugs to the github page where this is hosted.
-.SH
-.B NOTES
-The source is pure ansi and should compile cleanly. Converting to K&R is mostly
-doable but some versions may give you trouble.
+.B NOTE:
+This is enabled by default by a #define UNIX at the top of the source code.
+Comment this out or delete it to not allow the .os command.
+Example: the PRIMOS OS does not have a /bin/sh so this would be useless.
+.SH BUGS
+Please report any inconsistancies on the github issue page. Likewise, if there
+are features left out that you want included, let me know.
+.SH COPYRIGHT
+Copyright 2020 Kurt Theis.
+.B led
+is released under the MIT license.
+This is free software: you are free to change and redistribute it.  
+There is NO WARRANTY, to the extent permitted by law.
+

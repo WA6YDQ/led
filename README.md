@@ -1,6 +1,6 @@
 
 
-LED is an easy to use, full-featured multi-platform line editor with a consistant UI
+##LED##  an easy to use, full-featured multi-platform line editor with a consistant UI
 written in ansi c.
 
 I use many different computer systems, and while they all have some sort of line editor
@@ -16,7 +16,7 @@ There is a man page (led.1). Place this file in your /usr/local/man/man1 directo
 where you keep your local man pages.
 
 LED has enough commands to write meaningful documants/programs/whatever but not
-so many that they get in the way.
+so many that they get in the way. A lot of led was written with led.
 
 When LED is started, you will be placed in APPEND mode. Everything you type will
 be added to the buffer.
@@ -24,25 +24,22 @@ be added to the buffer.
 If LED is started with an optional filename then the file (if found) will be
 loaded into the buffer and, again, you will be placed in APPEND mode.
 
-To leave APPEND mode press CTRL-B then enter/return on an empty line.
-The prompt will change from A> to CMD> and whatever you type in will be interpreted as
-a command. To go back to APPEND mode press CTRL-B and the enter/return key on an
-empty line.
-
-While in COMMAND mode typing 'help' will display a short list of commands.
+Commands are in the form of a period followed by a single letter. ie .l, .q
+and need to be the at the start of an empty line.
 
 **Commands for LED are as follows:**
 
-**new** 
-clear the buffer
+**.q** 
+Exit immediately, do not save the buffer
 
-**load [filename]**
-load the contents of a file into the buffer
+**.e**
+Exit with a prompt for a filename to save to
 
-**save [filename]**
-save the buffer to filename
+**.s [filename]**
+Save the buffer to filename. If no filename is given you will be prompted 
+for one.
 
-**print [startline] [endline]**
+**.p [startline] [endline]**
 print the buffer to the display/tty 
 startline and endline are optional. If used, will display 
 only between startline and endline inclusve.
@@ -51,64 +48,53 @@ While printing, the display will stop at 24 lines and prompt you for more output
 You will see the ---MORE--- line. Either press enter/return to print another
 24 lines or press 'q' and the enter/return to stop the listing.
 
-**del [linenumber]**
+**.d [linenumber]**
 delete line linenumber
 
-**ins [linenumber]**
+**.i [linenumber]**
 start inserting text BEFORE linenumber.
-To exit insert mode, press CTRL-B and enter/return at the start of an empty line.
+To exit insert mode, press .q and enter/return at the start of an empty line.
 
-**cut [line number]**
+**.x [line number]**
 delete the line linenumber saving to cut text in a buffer
 
-**copy [linenumber]**
+**.c [linenumber]**
 copy the line linenumber to a buffer
 
-**paste [linenumber]**
+**.p [linenumber]**
 paste the cut buffer BEFORE linenumber
 
-**stats**
-show various info about the text buffer
-
-**find [string]**
+**.f [string]**
 search for 'string' in the text buffer. Shows the line number and line of text.
 
-**sort**
-Performs an alphabetic sort of the buffer, replacing the buffer contents with 
-the newly sorted contents.
-
-**replace [linenumber] [old string] [new string]**
-replace a single whitespace string named 'old string' with 'new string'
+**.r [linenumber] [old string] [new string]**
+replace a single whitespace bounded string named 'old string' with 'new string'
 'Old string' may be a part of a larger string, but is terminated by either a space
 or a newline.
 
-**replaceall [linenumber] [old string] [new string]**
+**.ra [linenumber] [old string] [new string]**
 Same as replace, but performs the operation globally starting at linenumber.
 
-**undo**
+**.undo**
 Undo un-does whatever horrible thing you just did to your buffer.
 Example: typing 'new' without saving the contents.
 There is only one level of undo.
 
-**quit**
-exit the LED program. Does NOT save (or ask to save) the buffer.
-If you want your file saved, save it before you type quit.
-Undo does not fix quit.
+**.os**
+Drop to a command prompt (/bin/sh on *nix systems). This is set by a #define 
+in the beginning of the source file.
 
 Prompts:
-A>  append mode
-I> insert mode
-CMD> command mode.
+>  append mode
+insert> insert mode
 
 See the man page (led.1) for any more information.
 
 The buffer size is limited only by available memory and your operating system.
 
 This code is under the MIT software license as described in the Github
-repository where this resides. Basically, do what you want with it. There are no 
-guarantees as to it's usefulness and if it breaks it's your problem.
-
-It works for me. I expect it should also work for you.
+repository where this resides. You are free to share it, use it and modify it
+to your needs. There are no guarantees as to it's usefullnes and function.
 
 -- *Kurt*
 
