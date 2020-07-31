@@ -37,18 +37,19 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <libgen.h>
+#include "mpe.h"
 
-
-#define MAXLINE 136
 #define LINENO_MIN 1        /* used for print/insert/delete/replace */
 #define LINENO_MAX 10000
 #define PAGELENGTH 24       /* used in print() */
-#define LINUX              /* Linux/unix system */
 /*
+#define LINUX            
 #define PRIMOS
 #define RSTS
 */
+#define MPE
 
+#define SHELL "/cmds/sh"
 
 
 /* global vars */
@@ -78,6 +79,7 @@ void savebuf(void);
 int main(int argc, char **argv) {
     char line[MAXLINE+1];
     int n=0;
+	int err = 0;
 
     buffer = (char *) malloc(2*(MAXLINE+2)*sizeof(char *)); /* main buffer */
     if (buffer == NULL) {
@@ -235,13 +237,14 @@ int main(int argc, char **argv) {
 
 
 
-#ifdef LINUX
         /* drop to a shell prompt: exit to return */
         if ((strncmp(line,".OS",3)==0) || (strncmp(line,".os",3)==0)) {
-            system("/bin/sh");
-            continue;
-        }
+#ifdef LINUX
+			err = system(SHELL);
+			if (err) puts("shell error");
 #endif
+			continue;
+        }
 
         /* not a command, save line to buffer */
         tbuf = realloc(buffer,curpos+strlen(line)+1);
