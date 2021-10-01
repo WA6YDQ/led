@@ -15,6 +15,11 @@ Place led in your /usr/local/bin or wherever your executables reside.
 There is a man page (led.1). Place this file in your /usr/local/man/man1 directory or
 where you keep your local man pages.
 
+
+Update (10/2021): I added a much cleaner version that is c99 compliant. It is called led_v3.c
+Compile with: c99 via: gcc -o led led_v3.c -std=gnu99 -O2 -march=native -Wall -pedantic
+Note that this is not ansi c code, so won't compile cleanly on strict ansi machines.
+
 LED has enough commands to write meaningful documents/programs/whatever but not
 so many that they get in the way. A lot of led was written with led.
 
