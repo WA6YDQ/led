@@ -46,7 +46,7 @@ Exit with a prompt for a filename to save to
 Save the buffer to filename. If no filename is given you will be prompted 
 for one.
 
-**.p [startline] [endline]**
+**.l [startline] [endline]**
 print the buffer to the display/tty 
 startline and endline are optional. If used, will display 
 only between startline and endline inclusve.
